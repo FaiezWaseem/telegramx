@@ -15,7 +15,7 @@
     "@react-navigation/native-stack": "6.0.2",
     "@shopify/flash-list": "1.1.0",
     "buffer": "*",
-    "expo": "~46.0.21",
+    "expo": "^47.0.0",
     "expo-constants": "~13.2.4",
     "expo-dev-client": "~1.3.1",
     "expo-file-system": "~14.1.0",

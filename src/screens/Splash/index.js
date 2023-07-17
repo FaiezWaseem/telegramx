@@ -13,7 +13,7 @@ export default ({ navigation }) => {
   React.useEffect(() => {
     (async () => {
       try {
-        await AppCache.createDir(AppCache.getPath('images/'))
+        // await AppCache.createDir(AppCache.getPath('images/'))
         const me = await mtproto.getMe();
         console.log(me)
         if (me) {
