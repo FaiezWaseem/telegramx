@@ -163,7 +163,7 @@ class Api {
         const seconds = Number(error_message.split('FLOOD_WAIT_')[1]);
         const ms = seconds * 1000;
 
-        await sleep(ms);
+        // await set(ms);
 
         return this.call(method, params, options);
       }
@@ -186,6 +186,20 @@ class Api {
 
       return Promise.reject(error);
     }
+  }
+  /**
+   * 
+   *  ```
+   *  Listen to updates
+   *  const api = new Api(mtproto)
+   *  api.on('event' , (e)=>{})
+   *   ```
+   * 
+   * @param {string} event 
+   * @param {Function} cb 
+   */
+  on(event , cb){
+   this.mtproto.updates.on(event , cb);
   }
   /**
    *
@@ -791,6 +805,10 @@ class Api {
    * @param {Chat} chat
    * @param {FileType} file
    * @param {string} message
+   * 
+   * ```
+   * 
+   *  ```
    */
   async sendMediaMessage(chat, file, message) {
     try {

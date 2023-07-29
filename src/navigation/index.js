@@ -10,6 +10,7 @@ import PasswordScreen from '../screens/Auth/Password';
 import ChatScreen from '../screens/chat/index';
 import ProfileScreen from '../screens/Profile/index';
 import EditProfile from '../screens/EditProfile/index'
+import ImageView from '../screens/ImageView/index'
 
 import { Screen } from '../utils/Constants';
 
@@ -31,6 +32,7 @@ function Routes() {
         <Stack.Screen name={Screen.CHAT} component={ChatScreen} />
         <Stack.Screen name={Screen.PROFILE} component={ProfileScreen} />
         <Stack.Screen name={Screen.EDITPROFILE} component={EditProfile} />
+        <Stack.Screen name={Screen.IMAGEVIEW} component={ImageView} />
       </Stack.Navigator>
     </NavigationContainer>
   );

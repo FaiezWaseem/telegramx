@@ -23,31 +23,7 @@ export default ({ item, navigation }) => {
           styles.chat,
           item.pinned ? { backgroundColor: colors.gray6 } : null,
         ]}>
-        <ImageBackground
-          source={!item.self && item.photo ? { uri: item.photo } : null}
-          style={[
-            styles.chatPhoto,
-            !item.photo || item.self
-              ? {
-                  backgroundColor: item.self
-                    ? colors.primary
-                    : item.avatarColor,
-                }
-              : null,
-          ]}
-          imageStyle={{ borderRadius: 64 }}>
-          {item.self ? (
-            <MaterialCommunityIcons
-              style={styles.chatSavedMessages}
-              name="bookmark"
-            />
-          ) : !item.photo ? (
-            <Text style={styles.chatPhotoText}>{item.avatarTitle}</Text>
-          ) : null}
-
-          {item.online ? <View style={styles.chatOnline}></View> : null}
-        </ImageBackground>
-
+       <ProfileImage item={item} />
         <View style={styles.chatInfo}>
           <View style={styles.chatHeader}>
             <View style={styles.chatTitle}>
@@ -89,17 +65,17 @@ export default ({ item, navigation }) => {
               {!item.typing && item.out
                 ? 'You: '
                 : item.messageFrom
-                ? item.messageFrom + ': '
-                : ''}
+                  ? item.messageFrom + ': '
+                  : ''}
               {item.typing
                 ? 'Typing...'
                 : item.messageService
-                ? item.messageService
-                : item.media && item.message
-                ? item.media + ', ' + item.message
-                : item.media
-                ? item.media
-                : item.message}
+                  ? item.messageService
+                  : item.media && item.message
+                    ? item.media + ', ' + item.message
+                    : item.media
+                      ? item.media
+                      : item.message}
             </Text>
 
             {item.unreadCount && !item.out ? (
@@ -121,6 +97,43 @@ export default ({ item, navigation }) => {
     </TouchableOpacity>
   );
 };
+
+
+const ProfileImage = ({item , size}) => {
+  return <ImageBackground
+    source={!item.self && item.photo ? { uri: item.photo } : null}
+    style={[
+      styles.chatPhoto,
+      !item.photo || item.self
+        ? {
+          backgroundColor: item.self
+            ? colors.primary
+            : item.avatarColor,
+        }
+        : null,
+        size ? {
+          width : size,
+          height : size
+        } : null 
+    ]}
+    imageStyle={{ borderRadius: 64 }}>
+    {item.self ? (
+      <MaterialCommunityIcons
+        style={styles.chatSavedMessages}
+        name="bookmark"
+      />
+    ) : !item.photo ? (
+      <Text style={styles.chatPhotoText}>{item.avatarTitle}</Text>
+    ) : null}
+
+    {item.online ? <View style={[styles.chatOnline , size ? {
+        top: 32,
+        left: 28,
+    } : null]}></View> : null}
+  </ImageBackground>
+}
+
+export { ProfileImage }
 
 const styles = StyleSheet.create({
   chat: {

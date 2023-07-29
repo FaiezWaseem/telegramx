@@ -15,13 +15,15 @@ export default function DrawerComponent({ navigation }) {
       setMe(isMe.users[0])
     } 
     (async () => {
+       await mtproto.updateStatusToOnline()
+
       const imageCache = Cache.getSessionValue('user.profile' , Cache.DEFAULT) || null
       if(imageCache){
         setProfileImage(imageCache)
         return;
       }
       const base64 = await mtproto.getProfilePhoto(isMe.full_user.profile_photo.id)
-      console.log(`HOORAY BASE64 GOT `)
+      console.log(`HOORAY GOT BASE64 `)
       Cache.setSessionValue('user.profile' , base64 , Cache.DEFAULT)
       setProfileImage(base64)
     })()

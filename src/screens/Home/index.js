@@ -9,6 +9,7 @@ import { FlatList, ActivityIndicator } from 'react-native';
 import ListItem from './ListItem';
 import mtproto from '../../utils/mtproto';
 import Cache from '../../utils/Cache'
+import { Util } from '../../utils/mtproto-api';
 
 export default function HomeScreen({ navigation }) {
   const [isDrawerOpen, setDrawerOpen] = React.useState(false);
@@ -23,6 +24,70 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
     loadDialogs()
   }, [])
+
+  useEffect(() => {
+    mtproto.on('updates', (update) => {
+      console.log('updates', update)
+      let _msg = update?.updates?.find(e => e._ === 'updateNewMessage')
+  
+      if (_msg) {
+        _msg = _msg?.message;
+        console.log('updateNewMessage' , _msg)
+        const index = chats.findIndex(
+          (chat) => chat.id === (_msg.peer_id?.user_id) || chat.id === (_msg.peer_id?.channel_id)
+          );
+          console.log('Found in Chat' , _msg , index)
+        if (index !== -1) {
+          const temp = [
+            {
+              ...chats[index],
+              message: _msg.message,
+              messageId: _msg.id,
+              unreadCount: _msg.out
+                ? 0
+                : ++chats[index].unreadCount,
+              out: _msg.out,
+              typing: false,
+              read: false,
+              date:  Util.showElapsedTime(_msg.date),
+            },
+            ...chats.filter((chat) => chat.id !== (_msg.peer_id?.user_id) || chat.id === (_msg.peer_id?.channel_id)),
+          ];
+          setChats(temp)
+        }
+      }
+
+      let _channel_msg = update?.updates?.find(e => e._ === 'updateNewChannelMessage')
+      if (_channel_msg) {
+        _channel_msg = _channel_msg?.message;
+        console.log('updateNewChannelMessage' , _channel_msg)
+        const index = chats.findIndex(
+          (chat) => chat.id === (_msg.peer_id?.user_id) || chat.id === (_msg.peer_id?.channel_id)
+          );
+          console.log('Found in updateNewChannelMessage Chat' , _msg , index)
+        if (index !== -1) {
+          const temp = [
+            {
+              ...chats[index],
+              message: _msg.message,
+              messageId: _msg.id,
+              unreadCount: _msg.out
+                ? 0
+                : ++chats[index].unreadCount,
+              out: _msg.out,
+              typing: false,
+              read: false,
+              date:  Util.showElapsedTime(_msg.date),
+            },
+            ...chats.filter((chat) => chat.id !== (_msg.peer_id?.user_id) || chat.id === (_msg.peer_id?.channel_id)),
+          ];
+          setChats(temp)
+        }
+      }
+
+    })
+  }, [])
+
 
   const loadDialogs = async () => {
     loading.current = true
@@ -40,6 +105,9 @@ export default function HomeScreen({ navigation }) {
       setOffsetDate(history.processedChats.slice(-1)[0].dateSeconds)
       Cache.setSessionValue(key, history.processedChats, Cache.JSON)
       loading.current = false
+      mtproto.SetMessagesAsSeen(chat , history?.processedChats?.[0].id)
+      .then(res => { console.log('Messages Seen' , res)})
+      .catch(err => { console.log('Messages Seen Failed' , err)})
     } else {
       console.log('Reached End')
       loading.current = false

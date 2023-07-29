@@ -7,6 +7,7 @@ class Screen {
   static CHAT = 'Chat';
   static PROFILE = 'Profile';
   static EDITPROFILE = 'EditProfile';
+  static IMAGEVIEW = 'ImageView';
 }
 
 const config = {

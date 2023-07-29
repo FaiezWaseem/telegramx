@@ -1,5 +1,5 @@
 import { TouchableOpacity } from 'react-native';
-import { Row, Text } from 'rn-faiez-components';
+import { Row, Text , Column } from 'rn-faiez-components';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AppBar({
@@ -9,6 +9,8 @@ export default function AppBar({
   rightIcon,
   leftIcon,
   title,
+  isbtmtext,
+  btmtext,
   bg,
   iconSize,
   txtSize,
@@ -40,9 +42,14 @@ export default function AppBar({
           />
         </TouchableOpacity>
         {isImage && imageComp()}
+        <Column>
         <Text fontSize={txtSize ?? 22} ml={15}>
           {title}
         </Text>
+        {isbtmtext && <Text fontSize={12} ml={15} color={'grey'} >
+          {btmtext}
+        </Text>}
+        </Column>
       </Row>
       <Row ml={15}>
         {isrightIcon && (

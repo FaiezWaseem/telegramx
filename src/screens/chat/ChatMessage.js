@@ -16,7 +16,8 @@ import RemoteFile from '../../components/RemoteFile';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 const { StorageAccessFramework } = FileSystem;
-import { Menu, MenuItem} from 'react-native-material-menu';
+import { Menu, MenuItem } from 'react-native-material-menu';
+import mtproto from '../../utils/mtproto';
 
 
 function ChatMessage({ item, currentUser, navigation }) {
@@ -45,17 +46,25 @@ function ChatMessage({ item, currentUser, navigation }) {
           fileName,
           mime_type
         )
-          .then(async (uri) => {
-            await FileSystem.writeAsStringAsync(uri, fileString, {
+          .then((uri) => {
+            FileSystem.writeAsStringAsync(uri, fileString, {
               encoding: FileSystem.EncodingType.Base64,
-            });
-            alert('Report Downloaded Successfully');
+            })
+              .then(res => {
+                alert('Report Downloaded Successfully');
+              })
+              .catch((e) => {
+                alert('File Writing Failed');
+              });
+
           })
-          .catch((e) => {});
+          .catch((e) => {
+            alert('File Creation Failed');
+          });
       } catch (e) {
         throw new Error(e);
       }
-    } catch (err) {}
+    } catch (err) { }
   };
 
   const FileDownloadStart = async () => {
@@ -68,27 +77,35 @@ function ChatMessage({ item, currentUser, navigation }) {
       `${MediaID}_NoNameMedia.` + MediaMimeType.split('/')[1];
 
     setDownloading(true);
-    console.log('downlaoding started', item);
-    //  downloadFile(
-    //   'document',
-    //   MediaID,
-    //   mediaAccessHash,
-    //   MediaFileRefrence,
-    //   null,
-    //   MediaName,
-    //   (res) => {
-    //     console.log(res);
-    //     setTotal_downloaded(formatBytes(res.downloaded_till_now));
-    //   }
-    // )
-    //   .then(async (file) => {
-    //     setDownloading(false);
-    //     console.log(file);
-    //     await saveAndroidFile(file, MediaName, MediaMimeType);
-    //   })
-    //   .catch((err) => {
-    //     console.log(err);
-    //   });
+    console.log('downloading started', item);
+
+      // mtproto.downloadFile(
+      //   'document',
+      //   MediaID,
+      //   mediaAccessHash,
+      //   MediaFileRefrence,
+      //   null,
+      //   (res) => {
+      //     console.log(res);
+      //     setTotal_downloaded(Util.formatBytes(res.downloaded_till_now));
+      //   },
+      //   4
+      // )
+      //   .then(async (file) => {
+      //     setDownloading(false);
+      //     console.log(file);
+      //     saveAndroidFile(file, MediaName, MediaMimeType)
+      //       .then(res => {
+      //         console.log('File Saved')
+      //       })
+      //       .catch(err => {
+      //         console.log(err)
+      //         alert('File Saving Error')
+      //       })
+      //   })
+      //   .catch((err) => {
+      //     console.log(err);
+      //   });
   };
 
   if (chat?._ === 'message') {
@@ -102,7 +119,7 @@ function ChatMessage({ item, currentUser, navigation }) {
       );
     }
     if (type?._ === 'messageMediaPhoto') {
-      let Imagewidth = (chat?.media?.photo?.sizes[1].w)
+      let Imagewidth = parseInt((chat?.media?.photo?.sizes[1].w) * 0.8)
       let ImageHieght = (chat?.media?.photo?.sizes[1].h)
       return (
         <Wrapper chat={chat} currentUser={currentUser}>
@@ -120,8 +137,8 @@ function ChatMessage({ item, currentUser, navigation }) {
                     uri: props.blob,
                   }}
                   style={{
-                    width : Imagewidth,
-                    height : ImageHieght,
+                    width: Imagewidth,
+                    height: ImageHieght,
                     resizeMode: 'contain',
                   }}
                 />
@@ -228,7 +245,7 @@ const Wrapper = ({ children, chat, currentUser, onPress }) => {
 
   return (
     <TouchableWithoutFeedback onPress={onPress} onLongPress={showMenu}>
-      <View style={{ marginTop: 6, width: Dimensions.get('screen').width  , transform : [{scaleY : -1}] }}>
+      <View style={{ marginTop: 6, width: Dimensions.get('screen').width, transform: [{ scaleY: -1 }] }}>
         <View
           style={[
             styles.ChatMessageContainer,
@@ -320,8 +337,8 @@ const CustomMenu = ({ visible, showMenu, hideMenu }) => {
         <MenuItem onPress={hideMenu}>{'reply'}</MenuItem>
         <MenuItem onPress={hideMenu}>{'Copy'}</MenuItem>
         <MenuItem onPress={hideMenu}>{'Forward'}</MenuItem>
-        <MenuItem onPress={hideMenu}  textStyle={{
-          color : 'red'
+        <MenuItem onPress={hideMenu} textStyle={{
+          color: 'red'
         }} >{'Delete'}</MenuItem>
       </Menu>
     </View>

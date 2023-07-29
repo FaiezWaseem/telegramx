@@ -13,13 +13,14 @@ export default function RemoteFile({ chatFile, type = 'photo', render }) {
 
     async function isInCache() {
         
-        //   const info = await AppCache.getFileInfo(path)
-        //   if(info.exists){
-        //     console.log(info)
-        //     let  base64 = await AppCache.loadFile(path , AppCache.Base64)
-        //     base64 = base64.replace('dataimage/pngbase64' , `data:image/png;base64,`)
-        //     return base64;
-        //   }
+          const info = await AppCache.getFileInfo(path)
+          console.log(info)
+          if(info.exists){
+            let  base64 = await AppCache.loadFile(path , AppCache.Base64)
+            base64 = `data:image/png;base64,`+ base64
+            console.log('loading from system')
+            return base64;
+          }
         const isCached = Cache.getSessionValue(path, Cache.DEFAULT) || null
         if (isCached) {
             console.log(`temp cache`)
@@ -38,7 +39,6 @@ export default function RemoteFile({ chatFile, type = 'photo', render }) {
             }
             const exists = await isInCache()
             if (exists) {
-                console.log(exists)
                 console.log(`loading from cache`)
                 setBlob(exists)
                 setLoading(false)
@@ -55,7 +55,6 @@ export default function RemoteFile({ chatFile, type = 'photo', render }) {
                 }
             ).then((file) => {
                 const base64File = `data:image/png;base64,` + file;
-                console.log(base64File)
                 if (isSubscribed) {
                     setLoading(false)
                     setBlob(base64File)

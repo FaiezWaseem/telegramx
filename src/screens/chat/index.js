@@ -11,12 +11,17 @@ import {
 import AppBar from '../../components/Header';
 import MyListView from '../../components/RecyclerView/index';
 import ChatMessage from './ChatMessage';
+import { ProfileImage } from '../Home/ListItem'
 import KeyboardAvoider from '../../components/KeyboardAvoider';
 import colors from '../../utils/Color';
 import { Ionicons } from '@expo/vector-icons';
 import { Menu, MenuItem, MenuDivider } from 'react-native-material-menu';
 import mtproto from '../../utils/mtproto';
 import Cache from '../../utils/Cache';
+
+import * as DocumentPicker from 'expo-document-picker'
+import * as FileSystem from 'expo-file-system'
+import { Buffer } from 'buffer'
 
 const BackgroundImages = [
   'https://w0.peakpx.com/wallpaper/425/514/HD-wallpaper-telegram-pattern-art-patterns.jpg',
@@ -28,39 +33,167 @@ const BackgroundImages = [
 export default ({ navigation, route }) => {
   const { chat } = route?.params
   const [chats, setChats] = useState([])
+  const [users, setUsers] = useState([])
   const [offset, setOffset] = useState(0)
-  const [currentUser , setUser] = useState({})
+  const [currentUser, setUser] = useState({})
   const [isloading, setLoading] = useState(false)
+  const [channel, setChannel] = useState(null)
+  const [messageInput, setMessageInput] = useState('')
   useEffect(() => {
-    const me  = Cache.getSessionValue('user' , Cache.JSON) || null
-    if(me){
-      console.log(me)
+    const me = Cache.getSessionValue('user', Cache.JSON) || null
+    if (me) {
       setUser(me.users[0])
     }
     getChats()
+
+    mtproto.getChannelInfo(chat.id, chat.accessHash)
+      .then(res => {
+        setChannel(res)
+      })
+      .catch(err => console.log('error', err))
+  }, [])
+
+
+  useEffect(() => {
+    const updateShortMessage = mtproto.on('updateShortMessage', (update) => {
+      const _user = users?.find(
+        (user) => user.id === update?.user_id
+      );
+      console.log(_user, users, update)
+      if (_user) {
+        const __msg = {
+          ...update,
+          _: 'message',
+          first_name: _user?.first_name ?? "",
+          bot: _user?.bot ?? false,
+          profile: _user?.photo ?? {},
+          username: _user?.username ?? "",
+          verified: _user?.verified ?? false,
+          status: _user?.status ?? {},
+          self: _user?.self ?? false,
+          date: new Date().getMilliseconds() / 1000
+        }
+        setChats(oldMsg => [__msg, ...oldMsg])
+      }
+    })
+    const updates = mtproto.on('updates', (update) => {
+      console.log('updates', update)
+      let _msg = update?.updates?.find(e => e._ === 'updateNewMessage')
+      if (_msg) {
+        _msg = _msg?.message
+        const _user = users?.find(
+          (user) => user.id === _msg?.from_id?.user_id
+        )
+        console.log(_user)
+        const __msg = {
+          ..._msg,
+          first_name: _user?.first_name ?? "",
+          bot: _user?.bot ?? false,
+          profile: _user?.photo ?? {},
+          username: _user?.username ?? "",
+          verified: _user?.verified ?? false,
+          status: _user?.status ?? {},
+          self: _user?.self ?? false,
+        }
+        setChats(oldMsg => [__msg, ...oldMsg])
+      }
+    })
+    return () => {
+      updateShortMessage.off('updateShortMessage',()=>{console.log('updateShortMessage END')})
+      updates.off('updates' , ()=> console.log('updates END'))
+    }
   }, [])
 
   const getChats = async () => {
 
-    if(isloading) return;
+    if (isloading) return;
 
     const key = `chat_${chat.id}_${offset}`;
-    const isCached = Cache.getSessionValue(key , Cache.JSON) || null;
+    const isCached = Cache.getSessionValue(key, Cache.JSON) || null;
     if (isCached) {
       console.log('loading from Cached')
-      setChats([ ...chats , ...isCached.messages])
+      setChats([...chats, ...isCached.messages])
+      setUsers([...users, ...isCached.users])
       setOffset(isCached.offset)
       return;
     }
 
     setLoading(true)
-    const res = await mtproto.getChats(chat , 100 , offset)
-    setChats([ ...chats , ...res.messages])
+    const res = await mtproto.getChats(chat, 100, offset)
+    setChats([...chats, ...res.messages])
+    setUsers([...users, ...res.users])
     setOffset(res.offset)
     console.log(res)
-    Cache.setSessionValue(key , res , Cache.JSON)
+    Cache.setSessionValue(key, res, Cache.JSON)
     setLoading(false)
   }
+
+
+  const SendMessage = async () => {
+    if (messageInput.length === 0) return;
+    const response = await mtproto.sendTextMessage(chat, messageInput, [])
+    setMessageInput('')
+    console.log(response)
+    var _msg = response?.updates?.find(e => e._ === 'updateNewMessage')
+    if (_msg) {
+      _msg = _msg?.message
+      const _user = response?.users?.find(
+        (user) => user.id === _msg?.from_id?.user_id
+      )
+      const __msg = {
+        ..._msg,
+        first_name: _user?.first_name ?? "",
+        bot: _user?.bot ?? false,
+        profile: _user?.photo ?? {},
+        username: _user?.username ?? "",
+        verified: _user?.verified ?? false,
+        status: _user?.status ?? {},
+        self: _user?.self ?? false,
+      }
+      setChats(oldMsg => [__msg, ...oldMsg])
+    }
+
+  }
+  const selectDocumentForUpload = async () => {
+    let file = await DocumentPicker.getDocumentAsync({
+      multiple: true, type: '*/*',
+      copyToCacheDirectory: false,
+    });
+
+    if (file.type == 'success') {
+      console.log('Success Pick')
+      console.log(file)
+      try {
+        console.log('reading File buffer as base64')
+        const fileContents = await FileSystem.readAsStringAsync(file.uri, { encoding: 'base64' })
+        const result = await mtproto.uploadFile(Buffer.from(fileContents, 'base64'))
+        console.log({
+          date: new Date(),
+          fileID: result.id,
+          parts: result.parts,
+          size: file.size,
+          name: file.name
+        })
+        mtproto.sendMediaMessage(chat, {
+          id: result.id,
+          parts: result.parts,
+          size: file.size,
+          name: file.name,
+          mime_type: file.mimeType
+        }, messageInput ??  '').then(res => {
+          console.log('sent', res)
+          alert('File Sent')
+        })
+          .catch(err => console.log('error File Upload', err))
+      } catch (e) {
+        throw e
+      }
+    }
+
+  }
+
+
+
   return (
     <Box flex bg={colors.white}>
       <KeyboardAvoider
@@ -74,16 +207,7 @@ export default ({ navigation, route }) => {
           }}>
           <AppBar
             imageComp={() => (
-              <Image
-                source={{
-                  uri: 'https://randomuser.me/api/portraits/men/52.jpg',
-                }}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 64,
-                }}
-              />
+              <ProfileImage item={chat} size={44} />
             )}
             isImage
             title={chat?.title}
@@ -98,15 +222,17 @@ export default ({ navigation, route }) => {
             leftIconPress={() => {
               navigation.goBack();
             }}
+            isbtmtext
+            btmtext={channel?.full_chat?.online_count ? `${channel?.full_chat?.online_count} online , ${channel?.full_chat?.participants_count} members` : chat?.online ? 'Online' : 'offline'}
           />
-          {isloading && <ActivityIndicator /> }
+          {isloading && <ActivityIndicator />}
 
           {chats.length > 0 ? <MyListView
             data={chats}
             component={(type, value) => {
-              return <ChatMessage item={value} currentUser={currentUser} />;
+              return <ChatMessage item={value} currentUser={currentUser} navigation={navigation} />;
             }}
-            onEndReached={()=>{
+            onEndReached={() => {
               console.log('end')
               getChats()
             }}
@@ -123,16 +249,24 @@ export default ({ navigation, route }) => {
             bg={colors.white}
             alignItems={'center'}
             rounded={66}>
-            <Ionicons
-              name="add-circle"
-              size={24}
-              color="black"
-              style={{
-                marginHorizontal: 10,
-              }}
-            />
-            <TextInput placeholder={'Write Something...'} style={{ flex: 1 }} />
-            <Pressable>
+            <Pressable onPress={selectDocumentForUpload}>
+
+              <Ionicons
+                name="add-circle"
+                size={24}
+                color="black"
+                style={{
+                  marginHorizontal: 10,
+                }}
+              />
+            </Pressable>
+            <TextInput placeholder={'Write Something...'}
+              value={messageInput}
+              onChangeText={setMessageInput}
+              style={{ flex: 1 }} />
+            <Pressable
+              onPress={SendMessage}
+            >
               <Ionicons
                 name="send"
                 size={24}
